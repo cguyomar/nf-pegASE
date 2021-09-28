@@ -11,7 +11,7 @@ WorkflowAse.initialise(params, log)
 
 // TODO nf-core: Add all file path parameters for the pipeline to the list below
 // Check input path parameters to see if they exist
-def checkPathParamList = [ params.input, params.multiqc_config, params.fasta ]
+def checkPathParamList = [ params.input, params.multiqc_config, params.fasta, params.star_align ]
 for (param in checkPathParamList) { if (param) { file(param, checkIfExists: true) } }
 
 // Check mandatory parameters
@@ -54,11 +54,25 @@ include { INPUT_CHECK } from '../subworkflows/local/input_check' addParams( opti
 def multiqc_options   = modules['multiqc']
 multiqc_options.args += params.multiqc_title ? Utils.joinModuleArgs(["--title \"$params.multiqc_title\""]) : ''
 
+def star_align_options            = modules['star_align']
+star_align_options.args          += params.save_unaligned ? Utils.joinModuleArgs(['--outReadsUnmapped Fastx']) : ''
+if (params.save_align_intermeds)  { star_align_options.publish_files.put('bam','') }
+if (params.save_unaligned)        { star_align_options.publish_files.put('fastq.gz','unmapped') }
+
 //
 // MODULE: Installed directly from nf-core/modules
 //
 include { FASTQC  } from '../modules/nf-core/modules/fastqc/main'  addParams( options: modules['fastqc'] )
+include { TRIMGALORE } from '../modules/nf-core/modules/trimgalore/main'
 include { MULTIQC } from '../modules/nf-core/modules/multiqc/main' addParams( options: multiqc_options   )
+include { STAR_ALIGN } from '../modules/nf-core/modules/star/align/main' addParams( options: star_align_options )
+include { STAR_ALIGN as STAR_ALIGN_2 } from '../modules/nf-core/modules/star/align/main' addParams( options: star_align_options )
+
+include { STAR_GENOMEGENERATE } from '../modules/nf-core/modules/star/genomegenerate/main'
+include { FILTER_JUNCTIONS } from '../modules/local/filter_junctions'
+
+
+
 
 /*
 ========================================================================================
@@ -79,14 +93,78 @@ workflow ASE {
     INPUT_CHECK (
         ch_input
     )
+    .map {
+           meta, fastq ->
+               meta.id = meta.id.split('_')[0..-2].join('_')
+               [ meta, fastq ] }
+       .groupTuple(by: [0])
+       .branch {
+           meta, fastq ->
+               single  : fastq.size() == 1
+                   return [ meta, fastq.flatten() ]
+               multiple: fastq.size() > 1
+                   return [ meta, fastq.flatten() ]
+       }
+       .set { ch_fastq }
+
 
     //
     // MODULE: Run FastQC
     //
     FASTQC (
-        INPUT_CHECK.out.reads
+        ch_fastq.single
     )
     ch_software_versions = ch_software_versions.mix(FASTQC.out.version.first().ifEmpty(null))
+
+    //
+    // MODULE: Run Trim Galore
+    //
+    TRIMGALORE (
+        ch_fastq.single
+    )
+    ch_software_versions = ch_software_versions.mix(TRIMGALORE.out.version.first().ifEmpty(null))
+
+    STAR_GENOMEGENERATE (
+      params.fasta,
+      params.gtf
+      )
+
+    STAR_ALIGN (
+        TRIMGALORE.out.reads,
+        STAR_GENOMEGENERATE.out.index,
+        params.gtf,
+        []
+      )
+
+    FILTER_JUNCTIONS (
+        STAR_ALIGN.out.bam_sorted
+      )
+
+    // Second star alignment
+    STAR_ALIGN_2 (
+        TRIMGALORE.out.reads,
+        STAR_GENOMEGENERATE.out.index,
+        params.gtf,
+        FILTER_JUNCTIONS.out.sjout
+      )
+
+    //Merge BAM
+
+
+
+      // [Thu Aug 26 15:20:30 2021]
+      // rule STAR_SJout_filter:
+      //     input: Results_ASE/STAR_Aln_1/samplePE_SJ.out.tab, Results_ASE/STAR_Aln_1/sampleSE_SJ.out.tab
+      //     output: Results_ASE/STAR_Index_1/SJ.out.filtered.tab
+      //     jobid: 41
+      //
+      //
+      //         # filter junctions on: mitochondria , non canonical, already known, covered by less than 3 uniquely mapped reads in at least 1 sample
+      //         cat Results_ASE/STAR_Aln_1/samplePE_SJ.out.tab Results_ASE/STAR_Aln_1/sampleSE_SJ.out.tab | awk '$6==0 && $5>0 && $7>=2' | cut -f1-6 | sort | uniq -c |awk '{if($1>1
+      // ){print $2,$3,$4,$5,$6,$7}}' |sed 's/ /	/g' > Results_ASE/STAR_Index_1/SJ.out.filtered.tab
+
+
+
 
     //
     // MODULE: Pipeline reporting
