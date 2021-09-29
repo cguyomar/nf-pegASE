@@ -67,7 +67,7 @@ include { TRIMGALORE } from '../modules/nf-core/modules/trimgalore/main'
 include { MULTIQC } from '../modules/nf-core/modules/multiqc/main' addParams( options: multiqc_options   )
 include { STAR_ALIGN } from '../modules/nf-core/modules/star/align/main' addParams( options: star_align_options )
 include { STAR_ALIGN as STAR_ALIGN_2 } from '../modules/nf-core/modules/star/align/main' addParams( options: star_align_options )
-
+include { SAMTOOLS_MERGE } from '../modules/nf-core/modules/samtools/merge/main'
 include { STAR_GENOMEGENERATE } from '../modules/nf-core/modules/star/genomegenerate/main'
 include { FILTER_JUNCTIONS } from '../modules/local/filter_junctions'
 
@@ -92,27 +92,13 @@ workflow ASE {
     //
     INPUT_CHECK (
         ch_input
-    )
-    .map {
-           meta, fastq ->
-               meta.id = meta.id.split('_')[0..-2].join('_')
-               [ meta, fastq ] }
-       .groupTuple(by: [0])
-       .branch {
-           meta, fastq ->
-               single  : fastq.size() == 1
-                   return [ meta, fastq.flatten() ]
-               multiple: fastq.size() > 1
-                   return [ meta, fastq.flatten() ]
-       }
-       .set { ch_fastq }
-
+    ).set { ch_fastq }
 
     //
     // MODULE: Run FastQC
     //
     FASTQC (
-        ch_fastq.single
+        ch_fastq
     )
     ch_software_versions = ch_software_versions.mix(FASTQC.out.version.first().ifEmpty(null))
 
@@ -120,7 +106,7 @@ workflow ASE {
     // MODULE: Run Trim Galore
     //
     TRIMGALORE (
-        ch_fastq.single
+        ch_fastq
     )
     ch_software_versions = ch_software_versions.mix(TRIMGALORE.out.version.first().ifEmpty(null))
 
@@ -148,20 +134,35 @@ workflow ASE {
         FILTER_JUNCTIONS.out.sjout
       )
 
-    //Merge BAM
+    // //Merge BAM
+    STAR_ALIGN_2.out.bam_sorted.set { bams }
+
+
+    bams.map{
+        meta, bam ->
+            meta.id = meta.id.split('_')[0..-2].join('_')
+            println(meta.id)
+            [ meta, bam ] }
+        .groupTuple(by: [0])
+        .branch {
+            meta, bam ->
+               single  : bam.size() == 1
+                   return [ meta, bam.flatten() ]
+               multiple: bam.size() > 1
+                   return [ meta, bam.flatten() ]
+        }
+        .set { bam_to_merge }
+
+    bam_to_merge.multiple.view()
+
+    SAMTOOLS_MERGE (
+        bam_to_merge.multiple
+    ).bam
+    .mix(bam_to_merge.single)
+    .set { bam_merged }
 
 
 
-      // [Thu Aug 26 15:20:30 2021]
-      // rule STAR_SJout_filter:
-      //     input: Results_ASE/STAR_Aln_1/samplePE_SJ.out.tab, Results_ASE/STAR_Aln_1/sampleSE_SJ.out.tab
-      //     output: Results_ASE/STAR_Index_1/SJ.out.filtered.tab
-      //     jobid: 41
-      //
-      //
-      //         # filter junctions on: mitochondria , non canonical, already known, covered by less than 3 uniquely mapped reads in at least 1 sample
-      //         cat Results_ASE/STAR_Aln_1/samplePE_SJ.out.tab Results_ASE/STAR_Aln_1/sampleSE_SJ.out.tab | awk '$6==0 && $5>0 && $7>=2' | cut -f1-6 | sort | uniq -c |awk '{if($1>1
-      // ){print $2,$3,$4,$5,$6,$7}}' |sed 's/ /	/g' > Results_ASE/STAR_Index_1/SJ.out.filtered.tab
 
 
 
