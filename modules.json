@@ -20,6 +20,21 @@
             },
             "gunzip": {
                 "git_sha": "e937c7950af70930d1f34bb961403d9d2aa81c7d"
+            },
+            "samtools/merge": {
+                "git_sha": "43c27792583b3db3faedf189adea48939e300cf2"
+            },
+            "picard/markduplicates": {
+                "git_sha": "7b3315591a149609e27914965f858c9a7e071564"
+            },
+            "gatk4/variantfiltration": {
+                "git_sha": "49da8642876ae4d91128168cd0db4f1c858d7792"
+            },
+            "gatk4/splitncigarreads": {
+                "git_sha": "49da8642876ae4d91128168cd0db4f1c858d7792"
+            },
+            "gatk4/createsequencedictionary": {
+                "git_sha": "49da8642876ae4d91128168cd0db4f1c858d7792"
             }
         }
     }

@@ -39,6 +39,10 @@ def modules = params.modules.clone()
 // MODULE: Local to the pipeline
 //
 include { GET_SOFTWARE_VERSIONS } from '../modules/local/get_software_versions' addParams( options: [publish_files : ['tsv':'']] )
+include { REMOVE_MULTIMAP } from '../modules/local/remove_multimap' addParams( options: [:] )
+include { FILTER_PROPERLY_PAIRED } from '../modules/local/filter_properly_paired'
+include { FILTER_JUNCTIONS } from '../modules/local/filter_junctions'
+include { SELECT_VARIANTS } from '../modules/local/select_variants'
 
 //
 // SUBWORKFLOW: Consisting of a mix of local and nf-core/modules
@@ -59,6 +63,7 @@ star_align_options.args          += params.save_unaligned ? Utils.joinModuleArgs
 if (params.save_align_intermeds)  { star_align_options.publish_files.put('bam','') }
 if (params.save_unaligned)        { star_align_options.publish_files.put('fastq.gz','unmapped') }
 
+def variantfiltration_options     = modules['gatk4_variantfiltration']
 //
 // MODULE: Installed directly from nf-core/modules
 //
@@ -68,8 +73,14 @@ include { MULTIQC } from '../modules/nf-core/modules/multiqc/main' addParams( op
 include { STAR_ALIGN } from '../modules/nf-core/modules/star/align/main' addParams( options: star_align_options )
 include { STAR_ALIGN as STAR_ALIGN_2 } from '../modules/nf-core/modules/star/align/main' addParams( options: star_align_options )
 include { SAMTOOLS_MERGE } from '../modules/nf-core/modules/samtools/merge/main'
+include { SAMTOOLS_FAIDX } from '../modules/nf-core/modules/samtools/faidx/main'
 include { STAR_GENOMEGENERATE } from '../modules/nf-core/modules/star/genomegenerate/main'
-include { FILTER_JUNCTIONS } from '../modules/local/filter_junctions'
+include { PICARD_MARKDUPLICATES } from '../modules/nf-core/modules/picard/markduplicates/main'
+include { GATK4_CREATESEQUENCEDICTIONARY } from '../modules/nf-core/modules/gatk4/createsequencedictionary/main'
+include { GATK4_SPLITNCIGARREADS } from '../modules/nf-core/modules/gatk4/splitncigarreads/main'
+include { GATK4_VARIANTFILTRATION } from '../modules/nf-core/modules/gatk4/variantfiltration/main' addParams( options: variantfiltration_options )
+
+
 
 
 
@@ -153,13 +164,74 @@ workflow ASE {
         }
         .set { bam_to_merge }
 
-    bam_to_merge.multiple.view()
-
     SAMTOOLS_MERGE (
         bam_to_merge.multiple
     ).bam
     .mix(bam_to_merge.single)
     .set { bam_merged }
+
+    // Filter properly paired alignments
+
+    bam_merged.branch {
+        meta, bam ->
+            unpaired : meta.single_end
+                return [ meta, bam]
+            paired : !meta.single_end
+                return [ meta, bam]
+    }
+    .set { bam_merged }
+    FILTER_PROPERLY_PAIRED (
+        bam_merged.paired
+    )
+    .mix(bam_merged.unpaired)
+    .view()
+    .set { bam_properly_paired }
+
+    // Remove duplicates
+    PICARD_MARKDUPLICATES ( 
+        bam_properly_paired
+    )
+
+    REMOVE_MULTIMAP (
+        PICARD_MARKDUPLICATES.out.bam
+    )
+
+    fai = SAMTOOLS_FAIDX(params.fasta).fai
+
+    GATK4_CREATESEQUENCEDICTIONARY(params.fasta)
+    dict = GATK4_CREATESEQUENCEDICTIONARY.out.dict
+    dict.view()
+
+
+    fasta = [ params.fasta,
+              params.fai,
+              dict.collect()
+    ]
+
+    // fasta.view()      
+    GATK4_SPLITNCIGARREADS (
+        REMOVE_MULTIMAP.out.bam,
+        params.fasta,
+        params.fai,
+        dict
+    )
+
+    // Select variants = SNP
+    SELECT_VARIANTS(
+        params.vcf
+        ).vcf.set{
+        vcf
+    }
+    // filter variants
+    GATK4_VARIANTFILTRATION(
+        ["vcf",vcf],
+        params.fasta,
+        fai,
+        dict
+    )
+
+    // PhASEr
+
 
 
 
