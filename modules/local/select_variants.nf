@@ -16,10 +16,10 @@ process SELECT_VARIANTS {
     }
 
     input:
-    path(vcf)
+    tuple val(meta), path(vcf)
 
     output:
-    path '*_SNP.vcf' , emit:vcf
+    tuple val(meta), path('*_SNP.vcf') , emit:vcf
 
     script:
     """
