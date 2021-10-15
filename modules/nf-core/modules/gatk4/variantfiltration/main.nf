@@ -32,6 +32,8 @@ process GATK4_VARIANTFILTRATION {
     script:
     def prefix   = options.suffix ? "${meta.id}${options.suffix}" : "${meta.id}"
     """
+    gatk IndexFeatureFile -I $vcf
+
     gatk VariantFiltration \\
         -R $fasta \\
         -V $vcf \\

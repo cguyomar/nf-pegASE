@@ -212,19 +212,18 @@ workflow ASE {
     GATK4_SPLITNCIGARREADS (
         REMOVE_MULTIMAP.out.bam,
         params.fasta,
-        params.fai,
+        fai,
         dict
     )
 
     // Select variants = SNP
     SELECT_VARIANTS(
-        params.vcf
-        ).vcf.set{
-        vcf
-    }
+        [ ["id":"vcf"],  params.vcf]
+        )
+
     // filter variants
     GATK4_VARIANTFILTRATION(
-        ["vcf",vcf],
+        SELECT_VARIANTS.out.vcf ,
         params.fasta,
         fai,
         dict
