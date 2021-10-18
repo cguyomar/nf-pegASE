@@ -43,6 +43,7 @@ include { REMOVE_MULTIMAP } from '../modules/local/remove_multimap' addParams( o
 include { FILTER_PROPERLY_PAIRED } from '../modules/local/filter_properly_paired'
 include { FILTER_JUNCTIONS } from '../modules/local/filter_junctions'
 include { SELECT_VARIANTS } from '../modules/local/select_variants'
+include { PHASER } from '../modules/local/phaser'
 
 //
 // SUBWORKFLOW: Consisting of a mix of local and nf-core/modules
@@ -183,9 +184,11 @@ workflow ASE {
     FILTER_PROPERLY_PAIRED (
         bam_merged.paired
     )
-    .mix(bam_merged.unpaired)
-    .view()
-    .set { bam_properly_paired }
+
+    // Merge paired and unpaired bams
+    bam_properly_paired = bam_merged.unpaired.mix(FILTER_PROPERLY_PAIRED.out.bam_pp)
+
+
 
     // Remove duplicates
     PICARD_MARKDUPLICATES ( 
@@ -195,6 +198,8 @@ workflow ASE {
     REMOVE_MULTIMAP (
         PICARD_MARKDUPLICATES.out.bam
     )
+
+    // Fasta processing (TODO : turn into subworkflow)
 
     fai = SAMTOOLS_FAIDX(params.fasta).fai
 
@@ -230,10 +235,10 @@ workflow ASE {
     )
 
     // PhASEr
-
-
-
-
+    PHASER(
+        REMOVE_MULTIMAP.out.bam,
+        GATK4_VARIANTFILTRATION.out.vcf
+    )
 
 
 
