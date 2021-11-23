@@ -68,6 +68,8 @@ def picard_markduplicates_options            = modules['picard_markduplicates']
 picard_markduplicates_options.args          += " --READ_NAME_REGEX " + params.read_name_regex
 
 def variantfiltration_options     = modules['gatk4_variantfiltration']
+
+def samtools_view_options     = modules['samtools_view']
 //
 // MODULE: Installed directly from nf-core/modules
 //
@@ -78,6 +80,7 @@ include { STAR_ALIGN } from '../modules/nf-core/modules/star/align/main' addPara
 include { STAR_ALIGN as STAR_ALIGN_2 } from '../modules/nf-core/modules/star/align/main' addParams( options: star_align_options )
 include { SAMTOOLS_MERGE } from '../modules/nf-core/modules/samtools/merge/main'
 include { SAMTOOLS_FAIDX } from '../modules/nf-core/modules/samtools/faidx/main'
+include { SAMTOOLS_VIEW } from '../modules/nf-core/modules/samtools/view/main' addParams( options: samtools_view_options)
 include { STAR_GENOMEGENERATE } from '../modules/nf-core/modules/star/genomegenerate/main'
 include { PICARD_MARKDUPLICATES } from '../modules/nf-core/modules/picard/markduplicates/main' addParams( options: picard_markduplicates_options )
 include { GATK4_CREATESEQUENCEDICTIONARY } from '../modules/nf-core/modules/gatk4/createsequencedictionary/main'
@@ -194,12 +197,13 @@ workflow ASE {
                 return [ meta, bam]
     }
     .set { bam_merged }
-    FILTER_PROPERLY_PAIRED (
-        bam_merged.paired
+    SAMTOOLS_VIEW (
+        bam_merged.paired,
+        []
     )
 
     // Merge paired and unpaired bams
-    bam_properly_paired = bam_merged.unpaired.mix(FILTER_PROPERLY_PAIRED.out.bam_pp)
+    bam_properly_paired = bam_merged.unpaired.mix(SAMTOOLS_VIEW.out.bam)
 
     //
     // MODULE: Run second STAR alignment
