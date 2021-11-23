@@ -64,6 +64,9 @@ star_align_options.args          += params.save_unaligned ? Utils.joinModuleArgs
 if (params.save_align_intermeds)  { star_align_options.publish_files.put('bam','') }
 if (params.save_unaligned)        { star_align_options.publish_files.put('fastq.gz','unmapped') }
 
+def picard_markduplicates_options            = modules['picard_markduplicates']
+picard_markduplicates_options.args          += " --READ_NAME_REGEX " + params.read_name_regex
+
 def variantfiltration_options     = modules['gatk4_variantfiltration']
 //
 // MODULE: Installed directly from nf-core/modules
@@ -76,7 +79,7 @@ include { STAR_ALIGN as STAR_ALIGN_2 } from '../modules/nf-core/modules/star/ali
 include { SAMTOOLS_MERGE } from '../modules/nf-core/modules/samtools/merge/main'
 include { SAMTOOLS_FAIDX } from '../modules/nf-core/modules/samtools/faidx/main'
 include { STAR_GENOMEGENERATE } from '../modules/nf-core/modules/star/genomegenerate/main'
-include { PICARD_MARKDUPLICATES } from '../modules/nf-core/modules/picard/markduplicates/main'
+include { PICARD_MARKDUPLICATES } from '../modules/nf-core/modules/picard/markduplicates/main' addParams( options: picard_markduplicates_options )
 include { GATK4_CREATESEQUENCEDICTIONARY } from '../modules/nf-core/modules/gatk4/createsequencedictionary/main'
 include { GATK4_SPLITNCIGARREADS } from '../modules/nf-core/modules/gatk4/splitncigarreads/main'
 include { GATK4_VARIANTFILTRATION } from '../modules/nf-core/modules/gatk4/variantfiltration/main' addParams( options: variantfiltration_options )
@@ -122,11 +125,19 @@ workflow ASE {
     )
     ch_software_versions = ch_software_versions.mix(TRIMGALORE.out.version.first().ifEmpty(null))
 
+    //
+    // Prepare index
+    //
     STAR_GENOMEGENERATE (
       params.fasta,
       params.gtf
       )
+    fai = SAMTOOLS_FAIDX(params.fasta).fai
+    dict = GATK4_CREATESEQUENCEDICTIONARY(params.fasta).dict
 
+    //
+    // MODULE: Run first STAR alignment
+    //
     STAR_ALIGN (
         TRIMGALORE.out.reads,
         STAR_GENOMEGENERATE.out.index,
@@ -134,11 +145,16 @@ workflow ASE {
         []
       )
 
+    //
+    // MODULE: FILTER_JUNCTIONS
+    //
     FILTER_JUNCTIONS (
         STAR_ALIGN.out.bam_sorted
       )
 
-    // Second star alignment
+    //
+    // MODULE: Run second STAR alignment
+    //
     STAR_ALIGN_2 (
         TRIMGALORE.out.reads,
         STAR_GENOMEGENERATE.out.index,
@@ -146,14 +162,12 @@ workflow ASE {
         FILTER_JUNCTIONS.out.sjout
       )
 
-    // //Merge BAM
+    // Merge BAMs
     STAR_ALIGN_2.out.bam_sorted.set { bams }
-
 
     bams.map{
         meta, bam ->
             meta.id = meta.id.split('_')[0..-2].join('_')
-            println(meta.id)
             [ meta, bam ] }
         .groupTuple(by: [0])
         .branch {
@@ -172,7 +186,6 @@ workflow ASE {
     .set { bam_merged }
 
     // Filter properly paired alignments
-
     bam_merged.branch {
         meta, bam ->
             unpaired : meta.single_end
@@ -188,49 +201,50 @@ workflow ASE {
     // Merge paired and unpaired bams
     bam_properly_paired = bam_merged.unpaired.mix(FILTER_PROPERLY_PAIRED.out.bam_pp)
 
-
-
-    // Remove duplicates
+    //
+    // MODULE: Run second STAR alignment
+    //
     PICARD_MARKDUPLICATES ( 
         bam_properly_paired
     )
-
+    
+    //
+    // MODULE: Run second STAR alignment
+    //
     REMOVE_MULTIMAP (
         PICARD_MARKDUPLICATES.out.bam
     )
 
-    // Fasta processing (TODO : turn into subworkflow)
-
-    fai = SAMTOOLS_FAIDX(params.fasta).fai
-
-    GATK4_CREATESEQUENCEDICTIONARY(params.fasta)
-    dict = GATK4_CREATESEQUENCEDICTIONARY.out.dict
-    dict.view()
-
-
     fasta = [ params.fasta,
-              params.fai,
+              fai,
               dict.collect()
     ]
 
-    // fasta.view()      
+    //
+    // MODULE: Run Split N Cigar reads
+    //
     GATK4_SPLITNCIGARREADS (
         REMOVE_MULTIMAP.out.bam,
         params.fasta,
         fai,
-        dict
+        GATK4_CREATESEQUENCEDICTIONARY.out.dict
     )
 
-    // Select variants = SNP
-    SELECT_VARIANTS(
-        [ ["id":"vcf"],  params.vcf]
-        )
+    //
+    // MODULE: Run SELECT_VARIANTS
+    //
+    SELECT_VARIANTS([ ["id":"vcf"],  params.vcf])
 
-    // filter variants
+    //
+    // MODULE: Run GATK4_VARIANTFILTRATION
+    //
     GATK4_VARIANTFILTRATION(
-        SELECT_VARIANTS.out.vcf ,
+        SELECT_VARIANTS.out.vcf,
         params.fasta,
         fai,
+        GATK4_CREATESEQUENCEDICTIONARY.out.dict
+    )
+
     // Filter by genotyping proportion
     VARIANT_FILTRATION(
         GATK4_VARIANTFILTRATION.out.vcf,
@@ -238,7 +252,9 @@ workflow ASE {
         params.fasta
     )
 
-    // PhASEr
+    //
+    // MODULE: Run PHASER
+    //
     PHASER(
         REMOVE_MULTIMAP.out.bam,
         VARIANT_FILTRATION.out.gt_vcf.collect()

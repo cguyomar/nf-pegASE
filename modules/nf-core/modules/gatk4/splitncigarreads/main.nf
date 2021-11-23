@@ -5,7 +5,7 @@ params.options = [:]
 options        = initOptions(params.options)
 
 process GATK4_SPLITNCIGARREADS {
-    //tag "$meta.id"
+    tag "$meta.id"
     label 'process_medium'
     publishDir "${params.outdir}",
         mode: params.publish_dir_mode,
