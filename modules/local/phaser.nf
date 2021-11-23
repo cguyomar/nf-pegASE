@@ -4,6 +4,7 @@ include { saveFiles } from './functions'
 params.options = [:]
 
 process PHASER {
+    tag "$meta_bam.id"
     publishDir "${params.outdir}",
         mode: params.publish_dir_mode,
         saveAs: { filename -> saveFiles(filename:filename, options:params.options, publish_dir:'phaser', meta:[:], publish_by_meta:[]) }
@@ -14,11 +15,11 @@ process PHASER {
 
     input:
     tuple val(meta_bam), path(bam)
-    tuple val(meta_vcf), path(vcf), path(vcf_index)
+    path(vcf)
 
     output:
-    path("*allelic_counts.txt"), emit: csv
-    path("*haplotypic_counts.txt"), emit: hap_count
+    tuple val(meta_bam), path("*allelic_counts.txt"), emit: csv
+    tuple val(meta_bam), path("*haplotypic_counts.txt"), emit: hap_count
 
 
     script:

@@ -44,7 +44,7 @@ include { FILTER_PROPERLY_PAIRED } from '../modules/local/filter_properly_paired
 include { FILTER_JUNCTIONS } from '../modules/local/filter_junctions'
 include { SELECT_VARIANTS } from '../modules/local/select_variants'
 include { PHASER } from '../modules/local/phaser'
-
+include { VARIANT_FILTRATION } from '../modules/local/variant_filtration'
 //
 // SUBWORKFLOW: Consisting of a mix of local and nf-core/modules
 //
@@ -231,13 +231,17 @@ workflow ASE {
         SELECT_VARIANTS.out.vcf ,
         params.fasta,
         fai,
-        dict
+    // Filter by genotyping proportion
+    VARIANT_FILTRATION(
+        GATK4_VARIANTFILTRATION.out.vcf,
+        params.gtf,
+        params.fasta
     )
 
     // PhASEr
     PHASER(
         REMOVE_MULTIMAP.out.bam,
-        GATK4_VARIANTFILTRATION.out.vcf
+        VARIANT_FILTRATION.out.gt_vcf.collect()
     )
 
 
