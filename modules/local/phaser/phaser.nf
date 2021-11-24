@@ -1,9 +1,9 @@
 // Import generic module functions
-include { saveFiles } from './functions'
+include { saveFiles } from '../functions'
 
 params.options = [:]
 
-process PHASER {
+process PHASER_MAIN {
     tag "$meta_bam.id"
     publishDir "${params.outdir}",
         mode: params.publish_dir_mode,
@@ -23,6 +23,7 @@ process PHASER {
 
 
     script:
+    def idSeparator   = params.idSeparator ? params.idSeparator : "_"
     """
     bgzip $vcf
     tabix ${vcf}.gz
@@ -37,8 +38,8 @@ process PHASER {
         --unphased_vars 1 \
         --gw_phase_vcf 1 \
         --baseq $params.baseQuality \
-        --mapq $params.mappingQuality #\
-        #--id_separator $params.idSeparator
+        --mapq $params.mappingQuality \
+        --id_separator $idSeparator
     """
 }
 

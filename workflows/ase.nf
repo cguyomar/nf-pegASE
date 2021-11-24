@@ -43,7 +43,8 @@ include { REMOVE_MULTIMAP } from '../modules/local/remove_multimap' addParams( o
 include { FILTER_PROPERLY_PAIRED } from '../modules/local/filter_properly_paired'
 include { FILTER_JUNCTIONS } from '../modules/local/filter_junctions'
 include { SELECT_VARIANTS } from '../modules/local/select_variants'
-include { PHASER } from '../modules/local/phaser'
+include { PHASER_MAIN } from '../modules/local/phaser/phaser'
+include { PHASER_GENE_AE } from '../modules/local/phaser/gene_ae'
 include { VARIANT_FILTRATION } from '../modules/local/variant_filtration'
 //
 // SUBWORKFLOW: Consisting of a mix of local and nf-core/modules
@@ -259,9 +260,14 @@ workflow ASE {
     //
     // MODULE: Run PHASER
     //
-    PHASER(
+    PHASER_MAIN(
         REMOVE_MULTIMAP.out.bam,
         VARIANT_FILTRATION.out.gt_vcf.collect()
+    )
+
+    PHASER_GENE_AE(
+        PHASER_MAIN.out.hap_count,
+        params.features
     )
 
 
