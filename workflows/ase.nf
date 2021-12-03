@@ -78,7 +78,7 @@ include { FASTQC  } from '../modules/nf-core/modules/fastqc/main'  addParams( op
 include { TRIMGALORE } from '../modules/nf-core/modules/trimgalore/main'
 include { MULTIQC } from '../modules/nf-core/modules/multiqc/main' addParams( options: multiqc_options   )
 include { STAR_ALIGN } from '../modules/nf-core/modules/star/align/main' addParams( options: star_align_options )
-include { STAR_ALIGN as STAR_ALIGN_2 } from '../modules/nf-core/modules/star/align/main' addParams( options: star_align_options )
+include { STAR_ALIGN_WITH_JUNCTIONS } from '../modules/nf-core/modules/star/align/main_with_junctions' addParams( options: star_align_options )
 include { SAMTOOLS_MERGE } from '../modules/nf-core/modules/samtools/merge/main'
 include { SAMTOOLS_FAIDX } from '../modules/nf-core/modules/samtools/faidx/main'
 include { SAMTOOLS_VIEW } from '../modules/nf-core/modules/samtools/view/main' addParams( options: samtools_view_options)
@@ -146,28 +146,30 @@ workflow ASE {
         TRIMGALORE.out.reads,
         STAR_GENOMEGENERATE.out.index,
         params.gtf,
-        []
       )
 
     //
     // MODULE: FILTER_JUNCTIONS
     //
     FILTER_JUNCTIONS (
-        STAR_ALIGN.out.bam_sorted
+        STAR_ALIGN.out.junction
       )
 
     //
     // MODULE: Run second STAR alignment
     //
-    STAR_ALIGN_2 (
+    sjout = FILTER_JUNCTIONS.out.sjout.map{ it[1] }.collect()
+    
+    // TODO : find a way to do this without duplicating the module code
+    STAR_ALIGN_WITH_JUNCTIONS (
         TRIMGALORE.out.reads,
         STAR_GENOMEGENERATE.out.index,
         params.gtf,
-        FILTER_JUNCTIONS.out.sjout
+        sjout 
       )
 
     // Merge BAMs
-    STAR_ALIGN_2.out.bam_sorted.set { bams }
+    STAR_ALIGN_WITH_JUNCTIONS.out.bam_sorted.set { bams }
 
     bams.map{
         meta, bam ->
@@ -207,14 +209,14 @@ workflow ASE {
     bam_properly_paired = bam_merged.unpaired.mix(SAMTOOLS_VIEW.out.bam)
 
     //
-    // MODULE: Run second STAR alignment
+    // MODULE: PICARD MARKDUPLICATES
     //
     PICARD_MARKDUPLICATES ( 
         bam_properly_paired
     )
     
     //
-    // MODULE: Run second STAR alignment
+    // MODULE: REMOVE_MULTIMAP
     //
     REMOVE_MULTIMAP (
         PICARD_MARKDUPLICATES.out.bam
