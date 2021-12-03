@@ -13,7 +13,7 @@
                 "git_sha": "e937c7950af70930d1f34bb961403d9d2aa81c7d"
             },
             "star/align": {
-                "git_sha": "5de3f2c50e063bda30316342b6606b485a12e38c"
+                "git_sha": "3aacd46da2b221ed47aaa05c413a828538d2c2ae"
             },
             "star/genomegenerate": {
                 "git_sha": "f43778b0e641a9643ae73fe1f2fe2d5bb81edffc"
@@ -35,6 +35,9 @@
             },
             "gatk4/createsequencedictionary": {
                 "git_sha": "49da8642876ae4d91128168cd0db4f1c858d7792"
+            },
+            "samtools/view": {
+                "git_sha": "19035c99d1cd8412b5046c6bb4af787658b84e5b"
             }
         }
     }
