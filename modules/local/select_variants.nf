@@ -27,7 +27,8 @@ process SELECT_VARIANTS {
     gatk SelectVariants  \\
         -V $vcf  \\
         -O ${vcf.baseName}_SNP.vcf \\
-        --select-type-to-include SNP
+        --select-type-to-include SNP \\
+        --restrict-alleles-to BIALLELIC
 
     """
 }
