@@ -11,7 +11,7 @@ WorkflowAse.initialise(params, log)
 
 // TODO nf-core: Add all file path parameters for the pipeline to the list below
 // Check input path parameters to see if they exist
-def checkPathParamList = [ params.input, params.multiqc_config, params.fasta, params.star_align ]
+def checkPathParamList = [ params.input, params.multiqc_config, params.fasta ]
 for (param in checkPathParamList) { if (param) { file(param, checkIfExists: true) } }
 
 // Check mandatory parameters
@@ -61,9 +61,9 @@ def multiqc_options   = modules['multiqc']
 multiqc_options.args += params.multiqc_title ? Utils.joinModuleArgs(["--title \"$params.multiqc_title\""]) : ''
 
 def star_align_options            = modules['star_align']
-star_align_options.args          += params.save_unaligned ? Utils.joinModuleArgs(['--outReadsUnmapped Fastx']) : ''
-if (params.save_align_intermeds)  { star_align_options.publish_files.put('bam','') }
-if (params.save_unaligned)        { star_align_options.publish_files.put('fastq.gz','unmapped') }
+// star_align_options.args          += params.save_unaligned ? Utils.joinModuleArgs(['--outReadsUnmapped Fastx']) : ''
+// if (params.save_align_intermeds)  { star_align_options.publish_files.put('bam','') }
+// if (params.save_unaligned)        { star_align_options.publish_files.put('fastq.gz','unmapped') }
 
 def picard_markduplicates_options            = modules['picard_markduplicates']
 picard_markduplicates_options.args          += " --READ_NAME_REGEX " + params.read_name_regex
@@ -163,7 +163,7 @@ workflow ASE {
         params.fasta
     )
     masked_reference = BEDTOOLS_MASKFASTA.out.fasta
-    masked_reference = masked_reference.map{println(it[1]) ; it[1]}.view()
+    masked_reference = masked_reference.map{ it[1] }
     masked_reference_index = SAMTOOLS_FAIDX_2(masked_reference).fai
     masked_reference_dict = GATK4_CREATESEQUENCEDICTIONARY_2(masked_reference).dict
 
