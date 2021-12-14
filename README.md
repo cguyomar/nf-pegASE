@@ -55,10 +55,9 @@ On release, automated continuous integration tests run the pipeline on a full-si
 
 4. Start running your own analysis!
 
-    <!-- TODO nf-core: Update the example "typical command" below used to run the pipeline -->
-
+    Example :
     ```console
-    nextflow run nf-core/ase -profile <docker/singularity/podman/shifter/charliecloud/conda/institute> --input samplesheet.csv --genome GRCh37
+    nextflow run nf-core/ase -profile <docker/singularity/podman/shifter/charliecloud/conda/institute> --input samplesheet.csv --fasta reference.fasta --vcf variants.vcf --gtf annotation.gtf --feature features.bed
     ```
 
 ## Documentation
