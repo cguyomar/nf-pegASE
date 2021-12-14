@@ -81,12 +81,15 @@ include { STAR_ALIGN } from '../modules/nf-core/modules/star/align/main' addPara
 include { STAR_ALIGN_WITH_JUNCTIONS } from '../modules/nf-core/modules/star/align/main_with_junctions' addParams( options: star_align_options )
 include { SAMTOOLS_MERGE } from '../modules/nf-core/modules/samtools/merge/main'
 include { SAMTOOLS_FAIDX } from '../modules/nf-core/modules/samtools/faidx/main'
+include { SAMTOOLS_FAIDX as SAMTOOLS_FAIDX_2} from '../modules/nf-core/modules/samtools/faidx/main'
 include { SAMTOOLS_VIEW } from '../modules/nf-core/modules/samtools/view/main' addParams( options: samtools_view_options)
 include { STAR_GENOMEGENERATE } from '../modules/nf-core/modules/star/genomegenerate/main'
 include { PICARD_MARKDUPLICATES } from '../modules/nf-core/modules/picard/markduplicates/main' addParams( options: picard_markduplicates_options )
 include { GATK4_CREATESEQUENCEDICTIONARY } from '../modules/nf-core/modules/gatk4/createsequencedictionary/main'
+include { GATK4_CREATESEQUENCEDICTIONARY as GATK4_CREATESEQUENCEDICTIONARY_2 } from '../modules/nf-core/modules/gatk4/createsequencedictionary/main'
 include { GATK4_SPLITNCIGARREADS } from '../modules/nf-core/modules/gatk4/splitncigarreads/main'
 include { GATK4_VARIANTFILTRATION } from '../modules/nf-core/modules/gatk4/variantfiltration/main' addParams( options: variantfiltration_options )
+include { BEDTOOLS_MASKFASTA } from '../modules/nf-core/modules/bedtools/maskfasta/main'
 
 
 
@@ -129,15 +132,49 @@ workflow ASE {
     )
     ch_software_versions = ch_software_versions.mix(TRIMGALORE.out.version.first().ifEmpty(null))
 
+
+    fai = SAMTOOLS_FAIDX(params.fasta).fai
+    dict = GATK4_CREATESEQUENCEDICTIONARY(params.fasta).dict
+
+    //
+    // MODULE: Run SELECT_VARIANTS
+    // select only SNPs
+    SELECT_VARIANTS([ ["id":"vcf"],  params.vcf])
+
+    //
+    // MODULE: Run GATK4_VARIANTFILTRATION
+    // FS > 30 & QD < 2 & biallelic
+    GATK4_VARIANTFILTRATION(
+        SELECT_VARIANTS.out.vcf,
+        params.fasta,
+        fai,
+        GATK4_CREATESEQUENCEDICTIONARY.out.dict
+    )
+
+    vcf_for_masking = GATK4_VARIANTFILTRATION.out.vcf.map {
+        meta,vcf,index -> [["id":"masked_reference"],vcf]
+    }
+
+    //
+    // MODULE: Run bedtools maskfasta
+    //
+    BEDTOOLS_MASKFASTA(
+        vcf_for_masking,
+        params.fasta
+    )
+    masked_reference = BEDTOOLS_MASKFASTA.out.fasta
+    masked_reference = masked_reference.map{println(it[1]) ; it[1]}.view()
+    masked_reference_index = SAMTOOLS_FAIDX_2(masked_reference).fai
+    masked_reference_dict = GATK4_CREATESEQUENCEDICTIONARY_2(masked_reference).dict
+
+  
     //
     // Prepare index
     //
     STAR_GENOMEGENERATE (
-      params.fasta,
+      masked_reference,
       params.gtf
       )
-    fai = SAMTOOLS_FAIDX(params.fasta).fai
-    dict = GATK4_CREATESEQUENCEDICTIONARY(params.fasta).dict
 
     //
     // MODULE: Run first STAR alignment
@@ -222,41 +259,21 @@ workflow ASE {
         PICARD_MARKDUPLICATES.out.bam
     )
 
-    fasta = [ params.fasta,
-              fai,
-              dict.collect()
-    ]
-
     //
     // MODULE: Run Split N Cigar reads
     //
     GATK4_SPLITNCIGARREADS (
         REMOVE_MULTIMAP.out.bam,
-        params.fasta,
-        fai,
-        GATK4_CREATESEQUENCEDICTIONARY.out.dict
-    )
-
-    //
-    // MODULE: Run SELECT_VARIANTS
-    //
-    SELECT_VARIANTS([ ["id":"vcf"],  params.vcf])
-
-    //
-    // MODULE: Run GATK4_VARIANTFILTRATION
-    //
-    GATK4_VARIANTFILTRATION(
-        SELECT_VARIANTS.out.vcf,
-        params.fasta,
-        fai,
-        GATK4_CREATESEQUENCEDICTIONARY.out.dict
+        masked_reference,
+        masked_reference_index,
+        masked_reference_dict
     )
 
     // Filter by genotyping proportion
     VARIANT_FILTRATION(
         GATK4_VARIANTFILTRATION.out.vcf,
         params.gtf,
-        params.fasta
+        masked_reference
     )
 
     //
@@ -273,11 +290,10 @@ workflow ASE {
     )
 
 
-
-
     //
     // MODULE: Pipeline reporting
     //
+
     ch_software_versions
         .map { it -> if (it) [ it.baseName, it ] }
         .groupTuple()

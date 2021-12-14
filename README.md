@@ -28,11 +28,13 @@ On release, automated continuous integration tests run the pipeline on a full-si
 1. Read QC ([`FastQC`](https://www.bioinformatics.babraham.ac.uk/projects/fastqc/))
 2. Present QC for raw reads ([`MultiQC`](http://multiqc.info/))
 3. Adapter and quality trimming  ([`Trim Galore!`](https://www.bioinformatics.babraham.ac.uk/projects/trim_galore/))
-4. Read alignment using [`STAR`](https://github.com/alexdobin/STAR) 2-pass process.
-5. Split reads with N in CIGAR [`GATK`](https://github.com/broadinstitute/gatk)
-6. Duplicate read marking ([`picard MarkDuplicates`](https://broadinstitute.github.io/picard/))
-7. RNA-seq specific filtering steps ( [`GATK`](https://github.com/broadinstitute/gatk) and [`SAMtools`](https://sourceforge.net/projects/samtools/files/samtools/))
-8. Allele Specific expression analysis ([`phASEr`](https://github.com/secastel/phaser))
+4. Filtering of low quality SNPs [(`GATK`](https://github.com/broadinstitute/gatk)
+5. Masking of the reference fasta with SNPs ([`Bedtools`](https://bedtools.readthedocs.io/en/latest/))
+6. Read alignment using [`STAR`](https://github.com/alexdobin/STAR) 2-pass process.
+7. Split reads with N in CIGAR ([`GATK`](https://github.com/broadinstitute/gatk))
+8. Duplicate read marking ([`picard MarkDuplicates`](https://broadinstitute.github.io/picard/))
+9. RNA-seq specific filtering steps ( [`GATK`](https://github.com/broadinstitute/gatk) and [`SAMtools`](https://sourceforge.net/projects/samtools/files/samtools/))
+10. Allele Specific expression analysis ([`phASEr`](https://github.com/secastel/phaser))
 
 
 ## Quick Start
