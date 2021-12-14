@@ -10,7 +10,7 @@ process PHASER_MAIN {
         saveAs: { filename -> saveFiles(filename:filename, options:params.options, publish_dir:'phaser', meta:[:], publish_by_meta:[]) }
 
     if (workflow.containerEngine == 'singularity' ) {
-        container "library://cguyomar/phaser/phaser:latest"
+        container "library://cguyomar/phaser/phaser:0.1"
     }
 
     input:
