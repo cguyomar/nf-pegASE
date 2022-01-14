@@ -13,9 +13,9 @@ process VARIANT_FILTRATION {
 
     conda (params.enable_conda ? "bioconda::pyfaidx" : null)
     if (workflow.containerEngine == 'singularity' && !params.singularity_pull_docker_container) {
-        container "library://cguyomar/default/variantfiltration:sha256.bfe342db3c4f6ea546283b3ceba2491a06abfb1327001cf2ed99f5aa38d016e7 "
+        container "library://cguyomar/default/variantfiltration:sha256.f4becace0a972ce05a06ada91cbbca8f108ec51a721df678fe6e9f111e4d4d84"
     } else {
-        container "library://cguyomar/default/variantfiltration:sha256.bfe342db3c4f6ea546283b3ceba2491a06abfb1327001cf2ed99f5aa38d016e7 "
+        container "library://cguyomar/default/variantfiltration:sha256.f4becace0a972ce05a06ada91cbbca8f108ec51a721df678fe6e9f111e4d4d84"
     }
 
     input:
@@ -33,6 +33,8 @@ process VARIANT_FILTRATION {
 
     script:
     """
+    samtools faidx $fasta -o ${fasta}.fai
+
     variantFiltration.py \
     --nb-cpus $task.cpus \
     --in-vcf $vcf \
