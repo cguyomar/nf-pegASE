@@ -13,9 +13,9 @@ process VARIANT_FILTRATION {
 
     conda (params.enable_conda ? "bioconda::pyfaidx" : null)
     if (workflow.containerEngine == 'singularity' && !params.singularity_pull_docker_container) {
-        container "library://cguyomar/default/variantfiltration:sha256.f4becace0a972ce05a06ada91cbbca8f108ec51a721df678fe6e9f111e4d4d84"
+        container "library://cguyomar/default/variantfiltration:sha256.a2a9c3ff8ecf924899e195ede4d9fddf93359c099af2b0a182aafe01cf9a7a34"
     } else {
-        container "library://cguyomar/default/variantfiltration:sha256.f4becace0a972ce05a06ada91cbbca8f108ec51a721df678fe6e9f111e4d4d84"
+        container "library://cguyomar/default/variantfiltration:sha256.a2a9c3ff8ecf924899e195ede4d9fddf93359c099af2b0a182aafe01cf9a7a34"
     }
 
     input:
