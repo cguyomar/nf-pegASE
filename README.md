@@ -57,7 +57,7 @@ On release, automated continuous integration tests run the pipeline on a full-si
 
     Example :
     ```console
-    nextflow run nf-core/ase -profile <docker/singularity/podman/shifter/charliecloud/conda/institute> --input samplesheet.csv --fasta reference.fasta --vcf variants.vcf --gtf annotation.gtf --feature features.bed
+    nextflow run nf-core/ase -profile <docker/singularity/podman/shifter/charliecloud/conda/institute> --input samplesheet.csv --fasta reference.fasta --vcf variants.vcf --gtf annotation.gtf --features features.bed
     ```
 
 ## Documentation
