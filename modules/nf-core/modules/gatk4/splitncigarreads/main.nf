@@ -31,6 +31,8 @@ process GATK4_SPLITNCIGARREADS {
     script:
     def prefix   = options.suffix ? "${meta.id}${options.suffix}" : "${meta.id}"
     """
+    export _JAVA_OPTIONS=-Djava.io.tmpdir=./
+
     gatk SplitNCigarReads \\
         -R $fasta \\
         -I $bam \\
