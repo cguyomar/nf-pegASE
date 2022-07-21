@@ -3,41 +3,44 @@
     "homePage": "https://github.com/nf-core/ase",
     "repos": {
         "nf-core/modules": {
+            "bedtools/maskfasta": {
+                "git_sha": "9d0cad583b9a71a6509b754fdf589cbfbed08961"
+            },
             "fastqc": {
                 "git_sha": "e937c7950af70930d1f34bb961403d9d2aa81c7d"
             },
-            "multiqc": {
-                "git_sha": "e937c7950af70930d1f34bb961403d9d2aa81c7d"
-            },
-            "trimgalore": {
-                "git_sha": "e937c7950af70930d1f34bb961403d9d2aa81c7d"
-            },
-            "star/align": {
-                "git_sha": "3aacd46da2b221ed47aaa05c413a828538d2c2ae"
-            },
-            "star/genomegenerate": {
-                "git_sha": "f43778b0e641a9643ae73fe1f2fe2d5bb81edffc"
-            },
-            "gunzip": {
-                "git_sha": "e937c7950af70930d1f34bb961403d9d2aa81c7d"
-            },
-            "samtools/merge": {
-                "git_sha": "43c27792583b3db3faedf189adea48939e300cf2"
-            },
-            "picard/markduplicates": {
-                "git_sha": "7b3315591a149609e27914965f858c9a7e071564"
-            },
-            "gatk4/variantfiltration": {
+            "gatk4/createsequencedictionary": {
                 "git_sha": "49da8642876ae4d91128168cd0db4f1c858d7792"
             },
             "gatk4/splitncigarreads": {
                 "git_sha": "49da8642876ae4d91128168cd0db4f1c858d7792"
             },
-            "gatk4/createsequencedictionary": {
+            "gatk4/variantfiltration": {
                 "git_sha": "49da8642876ae4d91128168cd0db4f1c858d7792"
+            },
+            "gunzip": {
+                "git_sha": "e937c7950af70930d1f34bb961403d9d2aa81c7d"
+            },
+            "multiqc": {
+                "git_sha": "e937c7950af70930d1f34bb961403d9d2aa81c7d"
+            },
+            "picard/markduplicates": {
+                "git_sha": "7b3315591a149609e27914965f858c9a7e071564"
+            },
+            "samtools/merge": {
+                "git_sha": "43c27792583b3db3faedf189adea48939e300cf2"
             },
             "samtools/view": {
                 "git_sha": "19035c99d1cd8412b5046c6bb4af787658b84e5b"
+            },
+            "star/align": {
+                "git_sha": "fb6c7bca3d55c19a793372513395e3a567bdd7ba"
+            },
+            "star/genomegenerate": {
+                "git_sha": "f43778b0e641a9643ae73fe1f2fe2d5bb81edffc"
+            },
+            "trimgalore": {
+                "git_sha": "e937c7950af70930d1f34bb961403d9d2aa81c7d"
             }
         }
     }

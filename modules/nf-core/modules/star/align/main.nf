@@ -1,28 +1,19 @@
-// Import generic module functions
-include { initOptions; saveFiles; getSoftwareName; getProcessName } from './functions'
-
-params.options = [:]
-options        = initOptions(params.options)
-
 process STAR_ALIGN {
     tag "$meta.id"
     label 'process_high'
-    publishDir "${params.outdir}",
-        mode: params.publish_dir_mode,
-        saveAs: { filename -> saveFiles(filename:filename, options:params.options, publish_dir:getSoftwareName(task.process), meta:meta, publish_by_meta:['id']) }
 
-    // Note: 2.7X indices incompatible with AWS iGenomes.
-    conda (params.enable_conda ? 'bioconda::star=2.7.9a' : null)
-    if (workflow.containerEngine == 'singularity' && !params.singularity_pull_docker_container) {
-        container 'https://depot.galaxyproject.org/singularity/star:2.7.9a--h9ee0642_0'
-    } else {
-        container 'quay.io/biocontainers/star:2.7.9a--h9ee0642_0'
-    }
+    conda (params.enable_conda ? "bioconda::star=2.7.10a bioconda::samtools=1.15.1 conda-forge::gawk=5.1.0" : null)
+    container "${ workflow.containerEngine == 'singularity' && !task.ext.singularity_pull_docker_container ?
+        'https://depot.galaxyproject.org/singularity/mulled-v2-1fa26d1ce03c295fe2fdcf85831a92fbcbd7e8c2:afaaa4c6f5b308b4b6aa2dd8e99e1466b2a6b0cd-0' :
+        'quay.io/biocontainers/mulled-v2-1fa26d1ce03c295fe2fdcf85831a92fbcbd7e8c2:afaaa4c6f5b308b4b6aa2dd8e99e1466b2a6b0cd-0' }"
 
     input:
     tuple val(meta), path(reads)
-    path  index
-    path  gtf
+    path index
+    path gtf
+    val star_ignore_sjdbgtf
+    val seq_platform
+    val seq_center
 
     output:
     tuple val(meta), path('*d.out.bam')       , emit: bam
@@ -37,14 +28,19 @@ process STAR_ALIGN {
     tuple val(meta), path('*fastq.gz')               , optional:true, emit: fastq
     tuple val(meta), path('*.tab')                   , optional:true, emit: tab
     tuple val(meta), path('*.out.junction')          , optional:true, emit: junction
+    tuple val(meta), path('*.out.sam')               , optional:true, emit: sam
+
+    when:
+    task.ext.when == null || task.ext.when
 
     script:
-    def prefix          = options.suffix ? "${meta.id}${options.suffix}" : "${meta.id}"
-    def ignore_gtf      = params.star_ignore_sjdbgtf ? '' : "--sjdbGTFfile $gtf"
-    def seq_platform    = params.seq_platform ? "'PL:$params.seq_platform'" : ""
-    def seq_center      = params.seq_center ? "--outSAMattrRGline ID:$prefix 'CN:$params.seq_center' 'SM:$prefix' $seq_platform " : "--outSAMattrRGline ID:$prefix 'SM:$prefix' $seq_platform "
-    def out_sam_type    = (options.args.contains('--outSAMtype')) ? '' : '--outSAMtype BAM Unsorted'
-    def mv_unsorted_bam = (options.args.contains('--outSAMtype BAM Unsorted SortedByCoordinate')) ? "mv ${prefix}.Aligned.out.bam ${prefix}.Aligned.unsort.out.bam" : ''
+    def args = task.ext.args ?: ''
+    def prefix = task.ext.prefix ?: "${meta.id}"
+    def ignore_gtf      = star_ignore_sjdbgtf ? '' : "--sjdbGTFfile $gtf"
+    def seq_platform    = seq_platform ? "'PL:$seq_platform'" : ""
+    def seq_center      = seq_center ? "--outSAMattrRGline ID:$prefix 'CN:$seq_center' 'SM:$prefix' $seq_platform " : "--outSAMattrRGline ID:$prefix 'SM:$prefix' $seq_platform "
+    def out_sam_type    = (args.contains('--outSAMtype')) ? '' : '--outSAMtype BAM Unsorted'
+    def mv_unsorted_bam = (args.contains('--outSAMtype BAM Unsorted SortedByCoordinate')) ? "mv ${prefix}.Aligned.out.bam ${prefix}.Aligned.unsort.out.bam" : ''
     """
     STAR \\
         --genomeDir $index \\
@@ -54,7 +50,7 @@ process STAR_ALIGN {
         $out_sam_type \\
         $ignore_gtf \\
         $seq_center \\
-        $options.args
+        $args
 
     $mv_unsorted_bam
 
@@ -66,13 +62,12 @@ process STAR_ALIGN {
         mv ${prefix}.Unmapped.out.mate2 ${prefix}.unmapped_2.fastq
         gzip ${prefix}.unmapped_2.fastq
     fi
-    if [ -f ${prefix}.SJ.out.tab ]; then
-        mv ${prefix}.SJ.out.tab ${prefix}.out.junction
-    fi
 
     cat <<-END_VERSIONS > versions.yml
-    ${getProcessName(task.process)}:
-        ${getSoftwareName(task.process)}: \$(STAR --version | sed -e "s/STAR_//g")
+    "${task.process}":
+        star: \$(STAR --version | sed -e "s/STAR_//g")
+        samtools: \$(echo \$(samtools --version 2>&1) | sed 's/^.*samtools //; s/Using.*\$//')
+        gawk: \$(echo \$(gawk --version 2>&1) | sed 's/^.*GNU Awk //; s/, .*\$//')
     END_VERSIONS
     """
 }
