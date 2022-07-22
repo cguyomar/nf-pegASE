@@ -7,7 +7,7 @@
                 "git_sha": "9d0cad583b9a71a6509b754fdf589cbfbed08961"
             },
             "fastqc": {
-                "git_sha": "e937c7950af70930d1f34bb961403d9d2aa81c7d"
+                "git_sha": "e745e167c1020928ef20ea1397b6b4d230681b4d"
             },
             "gatk4/createsequencedictionary": {
                 "git_sha": "49da8642876ae4d91128168cd0db4f1c858d7792"
@@ -22,7 +22,7 @@
                 "git_sha": "e937c7950af70930d1f34bb961403d9d2aa81c7d"
             },
             "multiqc": {
-                "git_sha": "e937c7950af70930d1f34bb961403d9d2aa81c7d"
+                "git_sha": "e745e167c1020928ef20ea1397b6b4d230681b4d"
             },
             "picard/markduplicates": {
                 "git_sha": "7b3315591a149609e27914965f858c9a7e071564"
@@ -41,7 +41,7 @@
             },
             "trimgalore": {
                 "git_sha": "e937c7950af70930d1f34bb961403d9d2aa81c7d"
-            }
+
         }
     }
 }
