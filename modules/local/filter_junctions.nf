@@ -1,14 +1,8 @@
-// Import generic module functions
-include { saveFiles } from './functions'
-
 params.options = [:]
 
 process FILTER_JUNCTIONS {
     tag "$meta.id"
-    publishDir "${params.outdir}",
-        mode: params.publish_dir_mode,
-        saveAs: { filename -> saveFiles(filename:filename, options:params.options, publish_dir:'pipeline_info', meta:[:], publish_by_meta:[]) }
-
+    
     input:
     tuple val(meta), path(tab)
 

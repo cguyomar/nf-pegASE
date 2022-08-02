@@ -1,14 +1,8 @@
-// Import generic module functions
-include { saveFiles } from './functions'
-
 params.options = [:]
 
 process FILTER_PROPERLY_PAIRED {
     tag "$meta.id"
-    publishDir "${params.outdir}",
-        mode: params.publish_dir_mode,
-        saveAs: { filename -> saveFiles(filename:filename, options:params.options, publish_dir:'pipeline_info', meta:[:], publish_by_meta:[]) }
-
+ 
     conda (params.enable_conda ? 'bioconda::samtools=1.13' : null)
     if (workflow.containerEngine == 'singularity' && !params.singularity_pull_docker_container) {
         container "https://depot.galaxyproject.org/singularity/samtools:1.13--h8c37831_0"

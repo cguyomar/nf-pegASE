@@ -38,7 +38,7 @@ def modules = params.modules.clone()
 //
 // MODULE: Local to the pipeline
 //
-include { GET_SOFTWARE_VERSIONS } from '../modules/local/get_software_versions' addParams( options: [publish_files : ['tsv':'']] )
+//include { GET_SOFTWARE_VERSIONS } from '../modules/local/get_software_versions' addParams( options: [publish_files : ['tsv':'']] )
 include { REMOVE_MULTIMAP } from '../modules/local/remove_multimap' addParams( options: [:] )
 include { FILTER_PROPERLY_PAIRED } from '../modules/local/filter_properly_paired'
 include { FILTER_JUNCTIONS } from '../modules/local/filter_junctions'
@@ -112,7 +112,7 @@ workflow ASE {
     //
     INPUT_CHECK (
         ch_input
-    ).set { ch_fastq }
+    ).reads.set { ch_fastq }
     
     ch_versions = ch_versions.mix(INPUT_CHECK.out.versions)
 
@@ -130,7 +130,7 @@ workflow ASE {
     TRIMGALORE (
         ch_fastq
     )
-    ch_software_versions = ch_software_versions.mix(TRIMGALORE.out.version.first().ifEmpty(null))
+    ch_versions = ch_versions.mix(TRIMGALORE.out.version.first().ifEmpty(null))
 
 
     fai = SAMTOOLS_FAIDX(params.fasta).fai
@@ -183,13 +183,16 @@ workflow ASE {
         TRIMGALORE.out.reads,
         STAR_GENOMEGENERATE.out.index,
         params.gtf,
+        false,
+        '',
+        ''    
       )
 
     //
     // MODULE: FILTER_JUNCTIONS
     //
     FILTER_JUNCTIONS (
-        STAR_ALIGN.out.junction
+        STAR_ALIGN.out.tab
       )
 
     //
@@ -294,19 +297,20 @@ workflow ASE {
     // MODULE: Pipeline reporting
     //
 
-    ch_software_versions
+    ch_versions
         .map { it -> if (it) [ it.baseName, it ] }
         .groupTuple()
         .map { it[1][0] }
         .flatten()
         .collect()
-        .set { ch_software_versions }
+        .set { ch_versions }
 
-    GET_SOFTWARE_VERSIONS (
-        ch_software_versions.map { it }.collect()
-    CUSTOM_DUMPSOFTWAREVERSIONS (
-        ch_versions.unique().collectFile(name: 'collated_versions.yml')
-    )
+    // GET_SOFTWARE_VERSIONS (
+    //     ch_versions.map { it }.collect()
+    // )
+    // CUSTOM_DUMPSOFTWAREVERSIONS (
+    //     ch_versions.unique().collectFile(name: 'collated_versions.yml')
+    // )
 
     //
     // MODULE: MultiQC
@@ -318,7 +322,7 @@ workflow ASE {
     ch_multiqc_files = ch_multiqc_files.mix(Channel.from(ch_multiqc_config))
     ch_multiqc_files = ch_multiqc_files.mix(ch_multiqc_custom_config.collect().ifEmpty([]))
     ch_multiqc_files = ch_multiqc_files.mix(ch_workflow_summary.collectFile(name: 'workflow_summary_mqc.yaml'))
-    ch_multiqc_files = ch_multiqc_files.mix(CUSTOM_DUMPSOFTWAREVERSIONS.out.mqc_yml.collect())
+    // ch_multiqc_files = ch_multiqc_files.mix(CUSTOM_DUMPSOFTWAREVERSIONS.out.mqc_yml.collect())
     ch_multiqc_files = ch_multiqc_files.mix(FASTQC.out.zip.collect{it[1]}.ifEmpty([]))
 
     MULTIQC (

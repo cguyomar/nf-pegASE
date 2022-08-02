@@ -1,21 +1,18 @@
-// Import generic module functions
-include { saveFiles } from './functions'
-
 params.options = [:]
 
 process VARIANT_FILTRATION {
 
     label 'process_high'
 
-    publishDir "${params.outdir}",
-        mode: params.publish_dir_mode,
-        saveAs: { filename -> saveFiles(filename:filename, options:params.options, publish_dir:'pipeline_info', meta:[:], publish_by_meta:[]) }
+    // publishDir "${params.outdir}",
+    //     mode: params.publish_dir_mode,
+    //     saveAs: { filename -> saveFiles(filename:filename, options:params.options, publish_dir:'pipeline_info', meta:[:], publish_by_meta:[]) }
 
     conda (params.enable_conda ? "bioconda::pyfaidx" : null)
     if (workflow.containerEngine == 'singularity' && !params.singularity_pull_docker_container) {
-        container "library://cguyomar/default/variantfiltration:sha256.a2a9c3ff8ecf924899e195ede4d9fddf93359c099af2b0a182aafe01cf9a7a34"
+        container "library://cguyomar/default/variantfiltration:0.1"
     } else {
-        container "library://cguyomar/default/variantfiltration:sha256.a2a9c3ff8ecf924899e195ede4d9fddf93359c099af2b0a182aafe01cf9a7a34"
+        container "library://cguyomar/default/variantfiltration:0.1"
     }
 
     input:
