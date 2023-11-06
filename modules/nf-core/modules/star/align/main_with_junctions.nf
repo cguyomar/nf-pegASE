@@ -1,5 +1,5 @@
 params.options = [:]
-// options        = initOptions(params.options)
+options        = initOptions(params.options)
 
 process STAR_ALIGN_WITH_JUNCTIONS {
     tag "$meta.id"
