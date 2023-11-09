@@ -74,23 +74,23 @@ def samtools_view_options     = modules['samtools_view']
 //
 // MODULE: Installed directly from nf-core/modules
 //
-include { FASTQC  } from '../modules/nf-core/modules/fastqc/main'  addParams( options: modules['fastqc'] )
-include { TRIMGALORE } from '../modules/nf-core/modules/trimgalore/main'
-include { MULTIQC } from '../modules/nf-core/modules/multiqc/main' addParams( options: multiqc_options   )
+include { FASTQC  } from '../modules/nf-core/fastqc/main'  addParams( options: modules['fastqc'] )
+include { TRIMGALORE } from '../modules/nf-core/trimgalore/main'
+include { MULTIQC } from '../modules/nf-core/multiqc/main' addParams( options: multiqc_options   )
 include { STAR_ALIGN_WITH_JUNCTIONS as STAR_ALIGN_FIRST_PASS } from '../modules/local/star_align_with_junctions' addParams( options: star_align_options )
 include { STAR_ALIGN_WITH_JUNCTIONS as STAR_ALIGN_SECOND_PASS } from '../modules/local/star_align_with_junctions' addParams( options: star_align_options )
-include { SAMTOOLS_MERGE } from '../modules/nf-core/modules/samtools/merge/main'
-include { SAMTOOLS_FAIDX } from '../modules/nf-core/modules/samtools/faidx/main'
-include { SAMTOOLS_FAIDX as SAMTOOLS_FAIDX_2} from '../modules/nf-core/modules/samtools/faidx/main'
-include { SAMTOOLS_VIEW } from '../modules/nf-core/modules/samtools/view/main' addParams( options: samtools_view_options)
-include { STAR_GENOMEGENERATE } from '../modules/nf-core/modules/star/genomegenerate/main'
-include { PICARD_MARKDUPLICATES } from '../modules/nf-core/modules/picard/markduplicates/main' addParams( options: picard_markduplicates_options )
-include { GATK4_CREATESEQUENCEDICTIONARY } from '../modules/nf-core/modules/gatk4/createsequencedictionary/main'
-include { GATK4_CREATESEQUENCEDICTIONARY as GATK4_CREATESEQUENCEDICTIONARY_2 } from '../modules/nf-core/modules/gatk4/createsequencedictionary/main'
-include { GATK4_SPLITNCIGARREADS } from '../modules/nf-core/modules/gatk4/splitncigarreads/main'
-include { GATK4_VARIANTFILTRATION } from '../modules/nf-core/modules/gatk4/variantfiltration/main' addParams( options: variantfiltration_options )
-include { BEDTOOLS_MASKFASTA } from '../modules/nf-core/modules/bedtools/maskfasta/main'
-include { CUSTOM_DUMPSOFTWAREVERSIONS } from '../modules/nf-core/modules/custom/dumpsoftwareversions/main'
+include { SAMTOOLS_MERGE } from '../modules/nf-core/samtools/merge/main'
+include { SAMTOOLS_FAIDX } from '../modules/nf-core/samtools/faidx/main'
+include { SAMTOOLS_FAIDX as SAMTOOLS_FAIDX_2} from '../modules/nf-core/samtools/faidx/main'
+include { SAMTOOLS_VIEW } from '../modules/nf-core/samtools/view/main' addParams( options: samtools_view_options)
+include { STAR_GENOMEGENERATE } from '../modules/nf-core/star/genomegenerate/main'
+include { PICARD_MARKDUPLICATES } from '../modules/nf-core/picard/markduplicates/main' addParams( options: picard_markduplicates_options )
+include { GATK4_CREATESEQUENCEDICTIONARY } from '../modules/nf-core/gatk4/createsequencedictionary/main'
+include { GATK4_CREATESEQUENCEDICTIONARY as GATK4_CREATESEQUENCEDICTIONARY_2 } from '../modules/nf-core/gatk4/createsequencedictionary/main'
+include { GATK4_SPLITNCIGARREADS } from '../modules/nf-core/gatk4/splitncigarreads/main'
+include { GATK4_VARIANTFILTRATION } from '../modules/nf-core/gatk4/variantfiltration/main' addParams( options: variantfiltration_options )
+include { BEDTOOLS_MASKFASTA } from '../modules/nf-core/bedtools/maskfasta/main'
+include { CUSTOM_DUMPSOFTWAREVERSIONS } from '../modules/nf-core/custom/dumpsoftwareversions/main'
 
 
 
