@@ -114,19 +114,16 @@ class RowChecker:
         """
         Assert that the combination of sample name and FASTQ filename is unique.
 
-        In addition to the validation, also rename the sample if more than one sample,
-        FASTQ file combination exists.
+        In addition to the validation, also rename all samples to have a suffix of _T{n}, where n is the
+        number of times the same sample exist, but with different FASTQ files, e.g., multiple runs per experiment.
 
         """
         assert len(self._seen) == len(self.modified), "The pair of sample name and FASTQ must be unique."
-        if len({pair[0] for pair in self._seen}) < len(self._seen):
-            counts = Counter(pair[0] for pair in self._seen)
-            seen = Counter()
-            for row in self.modified:
-                sample = row[self._sample_col]
-                seen[sample] += 1
-                if counts[sample] > 1:
-                    row[self._sample_col] = f"{sample}_T{seen[sample]}"
+        seen = Counter()
+        for row in self.modified:
+            sample = row[self._sample_col]
+            seen[sample] += 1
+            row[self._sample_col] = f"{sample}_T{seen[sample]}"
 
 
 def read_head(handle, num_lines=10):
@@ -179,15 +176,15 @@ def check_samplesheet(file_in, file_out):
 
     Example:
         This function checks that the samplesheet follows the following structure,
-        see also the `viral recon samplesheet`_::
+        see also the `rnavar test samplesheet`_::
 
             sample,fastq_1,fastq_2
             SAMPLE_PE,SAMPLE_PE_RUN1_1.fastq.gz,SAMPLE_PE_RUN1_2.fastq.gz
             SAMPLE_PE,SAMPLE_PE_RUN2_1.fastq.gz,SAMPLE_PE_RUN2_2.fastq.gz
             SAMPLE_SE,SAMPLE_SE_RUN1_1.fastq.gz,
 
-    .. _viral recon samplesheet:
-        https://raw.githubusercontent.com/nf-core/test-datasets/viralrecon/samplesheet/samplesheet_test_illumina_amplicon.csv
+    .. _rnavar test samplesheet:
+        https://raw.githubusercontent.com/nf-core/test-datasets/rnavar/samplesheet/v1.0/samplesheet.csv
 
     """
     required_columns = {"sample", "fastq_1", "fastq_2"}
