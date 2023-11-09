@@ -66,7 +66,7 @@ def star_align_options            = modules['star_align']
 // if (params.save_unaligned)        { star_align_options.publish_files.put('fastq.gz','unmapped') }
 
 def picard_markduplicates_options            = modules['picard_markduplicates']
-picard_markduplicates_options.args          += " --READ_NAME_REGEX " + params.read_name_regex
+picard_markduplicates_options.args          += " --READ_NAME_REGEX null"
 
 def variantfiltration_options     = modules['gatk4_variantfiltration']
 
@@ -77,8 +77,8 @@ def samtools_view_options     = modules['samtools_view']
 include { FASTQC  } from '../modules/nf-core/modules/fastqc/main'  addParams( options: modules['fastqc'] )
 include { TRIMGALORE } from '../modules/nf-core/modules/trimgalore/main'
 include { MULTIQC } from '../modules/nf-core/modules/multiqc/main' addParams( options: multiqc_options   )
-include { STAR_ALIGN } from '../modules/nf-core/modules/star/align/main' addParams( options: star_align_options )
-include { STAR_ALIGN_WITH_JUNCTIONS } from '../modules/nf-core/modules/star/align/main_with_junctions' addParams( options: star_align_options )
+include { STAR_ALIGN_WITH_JUNCTIONS as STAR_ALIGN_FIRST_PASS } from '../modules/local/star_align_with_junctions' addParams( options: star_align_options )
+include { STAR_ALIGN_WITH_JUNCTIONS as STAR_ALIGN_SECOND_PASS } from '../modules/local/star_align_with_junctions' addParams( options: star_align_options )
 include { SAMTOOLS_MERGE } from '../modules/nf-core/modules/samtools/merge/main'
 include { SAMTOOLS_FAIDX } from '../modules/nf-core/modules/samtools/faidx/main'
 include { SAMTOOLS_FAIDX as SAMTOOLS_FAIDX_2} from '../modules/nf-core/modules/samtools/faidx/main'
@@ -179,37 +179,48 @@ workflow ASE {
     //
     // MODULE: Run first STAR alignment
     //
-    STAR_ALIGN (
+    STAR_ALIGN_FIRST_PASS (
         TRIMGALORE.out.reads,
         STAR_GENOMEGENERATE.out.index,
         params.gtf,
+        [],
         false,
         '',
-        ''    
+        '',    
       )
 
     //
     // MODULE: FILTER_JUNCTIONS
     //
     FILTER_JUNCTIONS (
-        STAR_ALIGN.out.tab
+        STAR_ALIGN_FIRST_PASS.out.tab
       )
 
     //
     // MODULE: Run second STAR alignment
     //
     sjout = FILTER_JUNCTIONS.out.sjout.map{ it[1] }.collect()
+
     
     // TODO : find a way to do this without duplicating the module code
-    STAR_ALIGN_WITH_JUNCTIONS (
+    STAR_ALIGN_SECOND_PASS (
         TRIMGALORE.out.reads,
         STAR_GENOMEGENERATE.out.index,
         params.gtf,
-        sjout 
+        sjout,
+        false,
+        '',
+        '',    
       )
+    // STAR_ALIGN_WITH_JUNCTIONS (
+    //     TRIMGALORE.out.reads,
+    //     STAR_GENOMEGENERATE.out.index,
+    //     params.gtf,
+    //     sjout 
+    //   )
 
     // Merge BAMs
-    STAR_ALIGN_WITH_JUNCTIONS.out.bam_sorted.set { bams }
+    STAR_ALIGN_SECOND_PASS.out.bam_sorted.set { bams }
 
     bams.map{
         meta, bam ->
